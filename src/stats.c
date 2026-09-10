@@ -19,8 +19,7 @@ void stats_report(const stats_t *s, uint32_t uptime_s) {
            (unsigned long)or_zero(s->turn_min_us), (unsigned long)s->turn_max_us,
            (unsigned long)s->turn_n);
 
-    printf("               miss %lu (%lu consec)  linkdrop %lu  cont %lu  hold_to %lu\n",
-           (unsigned long)s->miss, (unsigned long)s->miss_consec,
+    printf("               linkdrop %lu  cont %lu  hold_to %lu\n",
            (unsigned long)s->link_drops, (unsigned long)s->err_contention,
            (unsigned long)s->err_drive_timeout);
 

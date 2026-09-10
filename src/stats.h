@@ -19,8 +19,6 @@ typedef struct {
     uint32_t turn_min_us, turn_max_us, turn_n;
 
     // Health
-    uint32_t miss;            // frames where no reply came back before the next one
-    uint32_t miss_consec;     // current consecutive-miss run
     uint32_t err_frame;       // PIO framing errors on the local wire
     uint32_t err_local_ovr;   // PIO RX FIFO overrun
     uint32_t err_link;        // UART framing/parity/break on the link

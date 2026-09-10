@@ -31,7 +31,6 @@ static inline uint8_t ring_pop(void) { uint8_t b = ring[r_tail]; r_tail = (uint1
 
 static void stats_reset_window(stats_t *s) {
     // Sticky across the reporting window: state, not per-second counts.
-    uint32_t keep_consec = s->miss_consec;
     uint32_t keep_up     = s->link_up;
     uint8_t  keep_burst[16];
     uint8_t  keep_cap    = s->last_burst_cap;
@@ -41,7 +40,6 @@ static void stats_reset_window(stats_t *s) {
     memset(s, 0, sizeof(*s));
     s->period_min_us = UINT32_MAX;
     s->turn_min_us   = UINT32_MAX;
-    s->miss_consec   = keep_consec;
     s->link_up       = keep_up;
     s->last_burst_cap = keep_cap;
     s->last_burst_len = keep_len;
@@ -85,8 +83,6 @@ void bridge_core1(void) {
                     st.period_sum_us += p; st.period_n++;
                 }
                 prev_start_us = now;
-                // With no far end connected a missing reply is expected, not a fault.
-                if (awaiting && st.link_up) { st.miss++; st.miss_consec++; }
                 awaiting = false;
                 st.last_burst_cap = 0;
                 st.last_burst_len = 0;
@@ -120,7 +116,6 @@ void bridge_core1(void) {
                 if (t > st.turn_max_us) st.turn_max_us = t;
                 st.turn_n++;
                 awaiting = false;
-                st.miss_consec = 0;
             }
             if (!ring_push(b)) st.err_ring_ovf++;
         }

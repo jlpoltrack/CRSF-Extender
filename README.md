@@ -57,13 +57,12 @@ UART idle — important because the battery-powered far end is often unpowered.
 
 Flash `rs422_radio.uf2`, connect GP9 to the module bay half-duplex pin, and open
 the USB serial port. With no far end attached the report still prints every
-second; `link` stays `DOWN` and misses are not counted (a missing reply is
-expected when nothing is connected).
+second and `link` stays `DOWN`.
 
     === RS-422 bridge [RADIO ] ===
     [RADIO       7s] local:  250 bursts   6000 B | link:    0 bursts      0 B | DOWN
                    period 3996/4000/4004 us  burst_max 1714 us  turn 0/0 us (n=0)
-                   miss 0 (0 consec)  linkdrop 0  cont 0  hold_to 0
+                   linkdrop 0  cont 0  hold_to 0
                    err: local frm 0 ovr 0 | link frm 0 ovr 0 | dropped tx 0 rx 0
                    last burst 24 B: C8 18 16 E0 03 1F 2B C0 F7 81 0F 7C E0 03 1F F8 ...
 
@@ -76,7 +75,7 @@ What to check, in order:
    baud is wrong — check the `OUTOVER`/`INOVER` calls first.
 3. `burst_max` under ~2000 us, confirming the radio's share of the frame.
 
-`turn`, `miss` and `linkdrop` only become meaningful once the second board and
+`turn` and `linkdrop` only become meaningful once the second board and
 the transceivers are in.
 
 You cannot debug PIO timing from a 1 Hz text report — put a logic analyzer on

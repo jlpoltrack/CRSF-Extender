@@ -2,6 +2,7 @@
 #include "stats.h"
 #include "local_port.h"
 #include "link_port.h"
+#include "status_led.h"
 
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
@@ -15,9 +16,14 @@ void bridge_core1(void);
 static void trace_pins_init(void) {
     gpio_init(TRACE_DIR_PIN);  gpio_set_dir(TRACE_DIR_PIN, GPIO_OUT);
     gpio_init(TRACE_LINK_PIN); gpio_set_dir(TRACE_LINK_PIN, GPIO_OUT);
-#ifdef PICO_DEFAULT_LED_PIN
-    gpio_init(PICO_DEFAULT_LED_PIN); gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-#endif
+
+    const uint gnd_pins[] = { GND_PIN_A, GND_PIN_B };
+    for (unsigned i = 0; i < 2; i++) {
+        gpio_init(gnd_pins[i]);
+        gpio_put(gnd_pins[i], 0);
+        gpio_set_dir(gnd_pins[i], GPIO_OUT);
+        gpio_set_drive_strength(gnd_pins[i], GPIO_DRIVE_STRENGTH_12MA);
+    }
 }
 
 int main(void) {
@@ -27,6 +33,7 @@ int main(void) {
     stdio_init_all();
 
     trace_pins_init();
+    status_led_init();
     link_port_init();
     local_port_init();
 
@@ -52,16 +59,17 @@ int main(void) {
         while (g_snap_req && !time_reached(give_up)) tight_loop_contents();
         __dmb();
 
+        // 1 Hz blink: green = link up, red = link down, blue = core1 wedged.
+        bool on = uptime_s & 1u;
         if (g_snap_req) {
             g_snap_req = false;
             printf("[%s %6lus] core1 not responding to snapshot request\n",
                    SIDE_NAME, (unsigned long)uptime_s);
+            status_led_set(0, 0, on ? 24 : 0);
         } else {
             stats_report(&g_snap, uptime_s);
+            if (g_snap.link_up) status_led_set(0, on ? 24 : 0, 0);
+            else                status_led_set(on ? 24 : 0, 0, 0);
         }
-
-#ifdef PICO_DEFAULT_LED_PIN
-        gpio_xor_mask(1u << PICO_DEFAULT_LED_PIN);
-#endif
     }
 }

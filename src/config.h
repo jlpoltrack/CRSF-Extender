@@ -19,12 +19,16 @@
 #endif
 
 // ---- Pins -----------------------------------------------------------------
-#define LOCAL_PIN        2    // inverted single-wire half duplex (radio bay / module)
-#define LINK_UART        uart0
-#define LINK_TX_PIN      0
-#define LINK_RX_PIN      1
+#define LOCAL_PIN        9    // inverted single-wire half duplex (radio bay / module)
+#define LINK_UART        uart0  // GP12/13 must stay on uart0 (TX/RX pin mux)
+#define LINK_TX_PIN      12
+#define LINK_RX_PIN      13
 #define TRACE_DIR_PIN    14   // high while we drive the local wire
 #define TRACE_LINK_PIN   15   // pulses on each link byte
+#define STATUS_LED_PIN   16   // RP2040-Zero on-board WS2812
+// Driven low as spare grounds. Signal reference only: 12 mA max per pin.
+#define GND_PIN_A        10
+#define GND_PIN_B        11
 
 // ---- Timing ---------------------------------------------------------------
 #define LOCAL_BAUD       400000u

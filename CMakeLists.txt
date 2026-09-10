@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(PICO_BOARD pico CACHE STRING "Board type")
+set(PICO_BOARD waveshare_rp2040_zero CACHE STRING "Board type")
 include(pico_sdk_import.cmake)
 
 project(rs422_bridge C CXX ASM)
@@ -14,7 +14,8 @@ function(add_bridge_target NAME SIDE)
             src/bridge.c
             src/local_port.c
             src/link_port.c
-            src/stats.c)
+            src/stats.c
+            src/status_led.c)
 
     target_compile_definitions(${NAME} PRIVATE BRIDGE_SIDE=${SIDE})
     target_include_directories(${NAME} PRIVATE src)
@@ -22,6 +23,7 @@ function(add_bridge_target NAME SIDE)
 
     pico_generate_pio_header(${NAME} ${CMAKE_CURRENT_LIST_DIR}/src/uart_tx.pio)
     pico_generate_pio_header(${NAME} ${CMAKE_CURRENT_LIST_DIR}/src/uart_rx.pio)
+    pico_generate_pio_header(${NAME} ${CMAKE_CURRENT_LIST_DIR}/src/ws2812.pio)
 
     target_link_libraries(${NAME}
             pico_stdlib

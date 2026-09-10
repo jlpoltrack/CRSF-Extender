@@ -24,11 +24,14 @@ XIP cache misses in the forwarding path and flash is idle at runtime.
 
 | GP | Function |
 |----|----------|
-| 0 / 1 | UART0 TX / RX — RS-422 link at 1 Mbaud, non-inverted, full duplex |
-| 2  | Local inverted single-wire half duplex (radio module bay / Tx module) |
+| 12 / 13 | UART0 TX / RX — RS-422 link at 1 Mbaud, non-inverted, full duplex |
+| 9  | Local inverted single-wire half duplex (radio module bay / Tx module) |
+| 10 / 11 | Driven low as spare grounds (12 mA max each; signal reference only) |
 | 14 | Trace: high while this board drives the local wire |
 | 15 | Trace: toggles on each byte from the link |
-| 25 | LED heartbeat, 1 Hz |
+| 16 | On-board WS2812 (PIO1): 1 Hz blink — green link up, red link down, blue core1 wedged |
+
+Target board is the Waveshare RP2040-Zero (`PICO_BOARD=waveshare_rp2040_zero`).
 
 Inversion is done with the pad's `OUTOVER`/`INOVER` override fields, so the PIO
 programs are ordinary idle-high 8N1 UARTs. The differential link stays
@@ -37,7 +40,7 @@ UART idle — important because the battery-powered far end is often unpowered.
 
 ## Design notes
 
-- `local_port.c` — PIO0 SM0 (TX) + SM1 (RX) share GP2. The TX SM owns `pindirs`;
+- `local_port.c` — PIO0 SM0 (TX) + SM1 (RX) share GP9. The TX SM owns `pindirs`;
   the RX SM is stopped while we drive, otherwise it just reads our own echo.
 - `link_port.c` — UART0, plain full duplex, no direction control needed.
 - `bridge.c` — core1 only. Polls both directions, detects burst boundaries by a
@@ -52,7 +55,7 @@ UART idle — important because the battery-powered far end is often unpowered.
 
 ## Bring-up, one board only
 
-Flash `rs422_radio.uf2`, connect GP2 to the module bay half-duplex pin, and open
+Flash `rs422_radio.uf2`, connect GP9 to the module bay half-duplex pin, and open
 the USB serial port. With no far end attached the report still prints every
 second; `link` stays `DOWN` and misses are not counted (a missing reply is
 expected when nothing is connected).
@@ -77,7 +80,7 @@ What to check, in order:
 the transceivers are in.
 
 You cannot debug PIO timing from a 1 Hz text report — put a logic analyzer on
-GP14/GP15 alongside GP2.
+GP14/GP15 alongside GP9.
 
 ## Not yet done
 

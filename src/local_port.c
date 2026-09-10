@@ -38,7 +38,7 @@ void local_port_init(void) {
 
 bool local_rx_get(uint8_t *b) {
     if (pio_sm_is_rx_fifo_empty(PIO_LOCAL, SM_RX)) return false;
-    // autopush=8 with shift-right leaves the byte in the MSBs of the word.
+    // Shift-right leaves the last 8 bits sampled in the MSBs of the word.
     *b = (uint8_t)(PIO_LOCAL->rxf[SM_RX] >> 24);
     return true;
 }

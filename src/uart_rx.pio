@@ -26,7 +26,9 @@ static inline void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin,
     pio_sm_config c = uart_rx_program_get_default_config(offset);
     sm_config_set_in_pins(&c, pin);
     sm_config_set_jmp_pin(&c, pin);
-    sm_config_set_in_shift(&c, true, true, 8);     // shift right, autopush at 8 bits
+    // No autopush: the explicit `push` after the stop-bit check is the only push,
+    // so a byte is sent exactly once and framing errors push nothing.
+    sm_config_set_in_shift(&c, true, false, 32);
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
     sm_config_set_clkdiv(&c, (float)clock_get_hz(clk_sys) / (8 * baud));
     pio_sm_init(pio, sm, offset, &c);

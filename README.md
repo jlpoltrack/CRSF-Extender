@@ -1,4 +1,4 @@
-# RS-422 bridge for a 400k inverted half-duplex radio link
+# CRSF-Extender
 
 Extends the 400 kbaud, inverted, single-wire half-duplex link between an EdgeTX
 radio and its external Tx module over 4-wire RS-422. One RP2040 at each end.

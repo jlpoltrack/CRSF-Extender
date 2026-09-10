@@ -24,7 +24,7 @@ XIP cache misses in the forwarding path and flash is idle at runtime.
 
 | GP | Function |
 |----|----------|
-| 0 / 1 | UART0 TX / RX — RS-422 link, non-inverted, full duplex |
+| 0 / 1 | UART0 TX / RX — RS-422 link at 1 Mbaud, non-inverted, full duplex |
 | 2  | Local inverted single-wire half duplex (radio module bay / Tx module) |
 | 14 | Trace: high while this board drives the local wire |
 | 15 | Trace: toggles on each byte from the link |
@@ -43,6 +43,9 @@ UART idle — important because the battery-powered far end is often unpowered.
 - `bridge.c` — core1 only. Polls both directions, detects burst boundaries by a
   `GUARD_US` (40 us ≈ 1.5 character times) inter-byte gap, and stages link→local
   bytes in a ring so a reply arriving mid-burst waits rather than colliding.
+- The link runs at 1 Mbaud while the local wire is 400k, so the link always
+  drains faster than it fills and each hop costs 10 us rather than 25. The far
+  end regenerates 400k timing on its own wire, so the rates need not match.
 - `main.c` — core0 only. USB is initialised **before** core1 launches so
   TinyUSB's IRQ binds to core0 and never perturbs the forwarding loop.
   Core1 never calls `printf`.
@@ -57,7 +60,8 @@ expected when nothing is connected).
     === RS-422 bridge [RADIO ] ===
     [RADIO       7s] local:  250 bursts   6000 B | link:    0 bursts      0 B | DOWN
                    period 3996/4000/4004 us  burst_max 1714 us  turn 0/0 us (n=0)
-                   miss 0 (0 consec)  err: frm 0 lovr 0 link 0 kovr 0 cont 0  linkdrop 0
+                   miss 0 (0 consec)  linkdrop 0  cont 0  hold_to 0
+                   err: local frm 0 ovr 0 | link frm 0 ovr 0 | dropped tx 0 rx 0
                    last burst 24 B: C8 18 16 E0 03 1F 2B C0 F7 81 0F 7C E0 03 1F F8 ...
 
 What to check, in order:

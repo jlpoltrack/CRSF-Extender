@@ -24,7 +24,10 @@ typedef struct {
     uint32_t err_frame;       // PIO framing errors on the local wire
     uint32_t err_local_ovr;   // PIO RX FIFO overrun
     uint32_t err_link;        // UART framing/parity/break on the link
-    uint32_t err_link_ovr;    // UART RX overrun
+    uint32_t err_link_ovr;    // UART RX overrun on the link
+    uint32_t err_link_drop;   // link TX FIFO full: a byte from the local wire was lost
+    uint32_t err_ring_ovf;    // link->local staging ring full: a reply byte was lost
+    uint32_t err_drive_timeout; // held the local wire too long; forced release
     uint32_t err_contention;  // link data ready while the local wire was busy
     uint32_t link_drops;      // link-timeout events
     uint32_t link_up;         // 1 if link seen recently

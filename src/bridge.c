@@ -55,9 +55,10 @@ void bridge_core1(void) {
     bool     driving      = false;   // we own the local wire
     bool     awaiting     = false;   // local burst ended, reply not yet seen
     bool     link_busy    = false;
+    bool     contended    = false;   // edge flag: contention is a state, not a rate
 
     uint32_t local_last_us = 0, burst_start_us = 0, burst_end_us = 0;
-    uint32_t prev_start_us = 0, link_last_us = 0, tx_last_us = 0;
+    uint32_t prev_start_us = 0, link_last_us = 0, drive_start_us = 0;
 
     for (;;) {
         uint32_t now = time_us_32();
@@ -94,7 +95,7 @@ void bridge_core1(void) {
             st.local_bytes++;
             if (st.last_burst_cap < sizeof(st.last_burst)) st.last_burst[st.last_burst_cap++] = b;
             if (st.last_burst_len < 0xffff) st.last_burst_len++;
-            if (!link_tx_put(b)) st.err_link_ovr++;   // link TX FIFO backed up
+            if (!link_tx_put(b)) st.err_link_drop++;   // link TX FIFO backed up
         }
 
         if (local_busy && (now - local_last_us) >= GUARD_US) {
@@ -121,7 +122,7 @@ void bridge_core1(void) {
                 awaiting = false;
                 st.miss_consec = 0;
             }
-            if (!ring_push(b)) st.err_local_ovr++;
+            if (!ring_push(b)) st.err_ring_ovf++;
         }
         if (link_busy && (now - link_last_us) >= GUARD_US) link_busy = false;
 
@@ -129,19 +130,30 @@ void bridge_core1(void) {
         if (!driving) {
             if (ring_count()) {
                 if (local_busy) {
-                    st.err_contention++;   // reply arrived mid-burst: wait it out
+                    // Reply arrived while the radio is still talking. Wait it out,
+                    // but count the event once, not once per loop pass.
+                    if (!contended) { st.err_contention++; contended = true; }
                 } else if ((now - local_last_us) >= GUARD_US) {
                     local_drive();
                     driving = true;
-                    tx_last_us = now;
+                    drive_start_us = now;
+                    contended = false;
                 }
+            } else {
+                contended = false;
             }
         } else {
-            while (ring_count() && local_tx_put(ring[r_tail])) {
-                ring_pop();
-                tx_last_us = time_us_32();
-            }
-            if (!ring_count() && local_tx_drained()) {
+            while (ring_count() && local_tx_put(ring[r_tail])) ring_pop();
+
+            // Only let go once the whole reply is through. Releasing on a
+            // momentarily empty ring would flap direction mid-burst and corrupt
+            // the frame, so the link must be idle too.
+            bool done    = !ring_count() && !link_busy && local_tx_drained();
+            // Backstop: never hold the radio's wire past its own frame. If the far
+            // end streams without pause we would otherwise jam the bus forever.
+            bool overrun = (now - drive_start_us) > MAX_DRIVE_US;
+            if (done || overrun) {
+                if (overrun && !done) { st.err_drive_timeout++; r_head = r_tail = 0; }
                 local_release();
                 driving = false;
                 local_last_us = time_us_32();   // guard before we trust RX again
@@ -159,7 +171,5 @@ void bridge_core1(void) {
         if (local_framing_error()) st.err_frame++;
         if (local_rx_overrun())    st.err_local_ovr++;
         uint32_t ovr; st.err_link += link_take_errors(&ovr); st.err_link_ovr += ovr;
-
-        (void)tx_last_us;
     }
 }

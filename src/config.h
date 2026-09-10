@@ -28,7 +28,9 @@
 
 // ---- Timing ---------------------------------------------------------------
 #define LOCAL_BAUD       400000u
-#define LINK_BAUD        400000u   // stage 1: transparent, same rate
+// Faster than LOCAL_BAUD on purpose: the link must always drain quicker than the
+// local wire fills, and the far end retimes every byte to 400k anyway.
+#define LINK_BAUD        1000000u
 
 // Inter-byte gap that marks the end of a burst on the local wire.
 // 1.5 character times at 400k = ~37us. Raise if the radio has intra-burst gaps.
@@ -36,6 +38,10 @@
 
 // No traffic from the RS-422 link for this long => far end gone; hold local idle.
 #define LINK_TIMEOUT_US  20000u
+
+// Hard cap on how long we may drive the local wire, so a misbehaving far end can
+// never jam the radio's bus. Comfortably longer than one reply, shorter than a frame.
+#define MAX_DRIVE_US     3000u
 
 #define REPORT_INTERVAL_US 1000000u
 

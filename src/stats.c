@@ -19,11 +19,15 @@ void stats_report(const stats_t *s, uint32_t uptime_s) {
            (unsigned long)or_zero(s->turn_min_us), (unsigned long)s->turn_max_us,
            (unsigned long)s->turn_n);
 
-    printf("               miss %lu (%lu consec)  err: frm %lu lovr %lu link %lu kovr %lu cont %lu  linkdrop %lu\n",
+    printf("               miss %lu (%lu consec)  linkdrop %lu  cont %lu  hold_to %lu\n",
            (unsigned long)s->miss, (unsigned long)s->miss_consec,
+           (unsigned long)s->link_drops, (unsigned long)s->err_contention,
+           (unsigned long)s->err_drive_timeout);
+
+    printf("               err: local frm %lu ovr %lu | link frm %lu ovr %lu | dropped tx %lu rx %lu\n",
            (unsigned long)s->err_frame, (unsigned long)s->err_local_ovr,
            (unsigned long)s->err_link, (unsigned long)s->err_link_ovr,
-           (unsigned long)s->err_contention, (unsigned long)s->link_drops);
+           (unsigned long)s->err_link_drop, (unsigned long)s->err_ring_ovf);
 
     if (s->last_burst_len) {
         printf("               last burst %u B:", (unsigned)s->last_burst_len);

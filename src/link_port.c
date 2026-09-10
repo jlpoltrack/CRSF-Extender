@@ -8,6 +8,10 @@ void link_port_init(void) {
     uart_init(LINK_UART, LINK_BAUD);
     gpio_set_function(LINK_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(LINK_RX_PIN, GPIO_FUNC_UART);
+
+    // Solo bring-up: with no transceiver fitted this pin floats and noise would
+    // be decoded as link traffic, which we would then drive onto the radio's wire.
+    gpio_pull_up(LINK_RX_PIN);
     uart_set_format(LINK_UART, 8, 1, UART_PARITY_NONE);
     uart_set_hw_flow(LINK_UART, false, false);
     uart_set_fifo_enabled(LINK_UART, true);

@@ -45,11 +45,20 @@ int main(void) {
         next = delayed_by_us(next, REPORT_INTERVAL_US);
         uptime_s++;
 
+        // Bounded: a wedged core1 must not also cost us the report that would
+        // tell us core1 is wedged.
         g_snap_req = true;
-        while (g_snap_req) tight_loop_contents();
+        absolute_time_t give_up = make_timeout_time_ms(50);
+        while (g_snap_req && !time_reached(give_up)) tight_loop_contents();
         __dmb();
 
-        stats_report(&g_snap, uptime_s);
+        if (g_snap_req) {
+            g_snap_req = false;
+            printf("[%s %6lus] core1 not responding to snapshot request\n",
+                   SIDE_NAME, (unsigned long)uptime_s);
+        } else {
+            stats_report(&g_snap, uptime_s);
+        }
 
 #ifdef PICO_DEFAULT_LED_PIN
         gpio_xor_mask(1u << PICO_DEFAULT_LED_PIN);

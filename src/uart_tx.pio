@@ -27,6 +27,9 @@ static inline void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin,
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
     sm_config_set_clkdiv(&c, (float)clock_get_hz(clk_sys) / (8 * baud));
     pio_sm_init(pio, sm, offset, &c);
+    // Release the wire before the SM starts: its first instruction side-sets the
+    // idle level, which must not reach the pad while the far end may be driving.
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
     pio_sm_set_enabled(pio, sm, true);
 }
 %}

@@ -28,6 +28,11 @@ typedef struct {
     uint32_t err_drive_timeout; // held the local wire too long; forced release
     uint32_t err_contention;  // link data ready while the local wire was busy
     uint32_t link_drops;      // link-timeout events
+
+    // CRSF frames seen passing through (CRC checked, never delayed)
+    uint32_t crsf_local_ok, crsf_local_bad;
+    uint32_t crsf_link_ok,  crsf_link_bad;
+    uint32_t rel_frame;       // local wire released at a CRSF frame end, not by gap
     uint32_t link_up;         // 1 if link seen recently
 
     // Bring-up aid: head of the most recent local burst. Wrong baud or wrong

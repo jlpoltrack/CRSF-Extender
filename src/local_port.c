@@ -79,8 +79,9 @@ bool local_tx_drained(void) {
 }
 
 void local_release(void) {
-    // TXSTALL asserts as the SM re-enters `pull`; let the stop bit finish first.
-    busy_wait_us_32(3 * 1000000u / LOCAL_BAUD + 1);
+    // TXSTALL asserts as the SM re-enters `pull`, i.e. at the start of the stop
+    // bit; drive it for one full bit plus margin before letting go.
+    busy_wait_us_32(1000000u / LOCAL_BAUD + 1);
 
     pio_sm_set_consecutive_pindirs(PIO_LOCAL, SM_TX, LOCAL_PIN, 1, false);
     gpio_put(TRACE_DIR_PIN, 0);

@@ -25,6 +25,7 @@
 #define LINK_RX_PIN      13
 #define TRACE_DIR_PIN    14   // high while we drive the local wire
 #define TRACE_LINK_PIN   15   // pulses on each link byte
+#define TRACE_LOOP_PIN   8    // toggles once per core1 loop pass
 #define STATUS_LED_PIN   16   // RP2040-Zero on-board WS2812
 // Driven low as spare grounds. Signal reference only: 12 mA max per pin.
 #define GND_PIN_A        10
@@ -49,8 +50,8 @@
 
 #define REPORT_INTERVAL_US 1000000u
 
-// 125 MHz is the safe bring-up default. 48000 also works (USB runs from PLL_USB
-// regardless) and cuts RP2040 draw; revisit once timing is verified on a scope.
-#define SYS_CLK_KHZ      125000
+// Unset: 48 MHz straight from PLL_USB with PLL_SYS off (lowest draw, exact baud
+// dividers). Define e.g. 96000 for local bauds above ~1M; check GP8 loop period.
+// #define SYS_CLK_KHZ   96000
 
 #endif

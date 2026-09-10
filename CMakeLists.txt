@@ -15,7 +15,8 @@ function(add_bridge_target NAME SIDE)
             src/local_port.c
             src/link_port.c
             src/stats.c
-            src/status_led.c)
+            src/status_led.c
+            src/crsf.c)
 
     target_compile_definitions(${NAME} PRIVATE BRIDGE_SIDE=${SIDE})
     target_include_directories(${NAME} PRIVATE src)

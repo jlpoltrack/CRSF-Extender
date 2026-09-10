@@ -16,6 +16,7 @@ void bridge_core1(void);
 static void trace_pins_init(void) {
     gpio_init(TRACE_DIR_PIN);  gpio_set_dir(TRACE_DIR_PIN, GPIO_OUT);
     gpio_init(TRACE_LINK_PIN); gpio_set_dir(TRACE_LINK_PIN, GPIO_OUT);
+    gpio_init(TRACE_LOOP_PIN); gpio_set_dir(TRACE_LOOP_PIN, GPIO_OUT);
 
     const uint gnd_pins[] = { GND_PIN_A, GND_PIN_B };
     for (unsigned i = 0; i < 2; i++) {
@@ -27,7 +28,11 @@ static void trace_pins_init(void) {
 }
 
 int main(void) {
+#ifdef SYS_CLK_KHZ
     set_sys_clock_khz(SYS_CLK_KHZ, true);
+#else
+    set_sys_clock_48mhz();
+#endif
 
     // USB must come up on core0 so TinyUSB's IRQ never lands on the shovel core.
     stdio_init_all();

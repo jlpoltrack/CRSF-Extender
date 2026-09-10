@@ -2,6 +2,7 @@
 #include "stats.h"
 #include "local_port.h"
 #include "link_port.h"
+#include "crsf.h"
 
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
@@ -48,6 +49,11 @@ static void stats_reset_window(stats_t *s) {
 
 void bridge_core1(void) {
     stats_reset_window(&st);
+    crsf_init();
+
+    crsf_parser_t local_p, link_p;
+    crsf_reset(&local_p); crsf_reset(&link_p);
+    bool     link_frame_end = false; // last link byte closed a CRC-valid frame
 
     bool     local_busy   = false;   // a burst is arriving on the local wire
     bool     driving      = false;   // we own the local wire
@@ -60,6 +66,7 @@ void bridge_core1(void) {
 
     for (;;) {
         uint32_t now = time_us_32();
+        gpio_xor_mask(1u << TRACE_LOOP_PIN);   // half-period on a scope = one pass
 
         if (g_snap_req) {
             g_snap = st;
@@ -86,7 +93,11 @@ void bridge_core1(void) {
                 awaiting = false;
                 st.last_burst_cap = 0;
                 st.last_burst_len = 0;
+                crsf_reset(&local_p);
             }
+            crsf_result_t r = crsf_feed(&local_p, b);
+            if (r == CRSF_OK) st.crsf_local_ok++;
+            else if (r != CRSF_NONE) st.crsf_local_bad++;
             local_last_us = now;
             st.local_bytes++;
             if (st.last_burst_cap < sizeof(st.last_burst)) st.last_burst[st.last_burst_cap++] = b;
@@ -106,7 +117,12 @@ void bridge_core1(void) {
         while (link_rx_get(&b)) {
             now = time_us_32();
             gpio_xor_mask(1u << TRACE_LINK_PIN);
-            if (!link_busy) { link_busy = true; st.link_bursts++; }
+            if (!link_busy) { link_busy = true; st.link_bursts++; crsf_reset(&link_p); }
+            crsf_result_t r = crsf_feed(&link_p, b);
+            if (r == CRSF_OK) st.crsf_link_ok++;
+            else if (r != CRSF_NONE) st.crsf_link_bad++;
+            // Only a good CRC proves the length byte, so only that may end a drive early.
+            link_frame_end = (r == CRSF_OK);
             link_last_us = now;
             st.link_bytes++;
             st.link_up = 1;
@@ -140,15 +156,16 @@ void bridge_core1(void) {
         } else {
             while (ring_count() && local_tx_put(ring[r_tail])) ring_pop();
 
-            // Only let go once the whole reply is through. Releasing on a
-            // momentarily empty ring would flap direction mid-burst and corrupt
-            // the frame, so the link must be idle too.
-            bool done    = !ring_count() && !link_busy && local_tx_drained();
+            // Only let go once the whole reply is through: the link must be idle,
+            // or its last byte closed a valid frame. A following frame just re-drives.
+            bool quiet   = !link_busy || link_frame_end;
+            bool done    = !ring_count() && quiet && local_tx_drained();
             // Backstop: never hold the radio's wire past its own frame. If the far
             // end streams without pause we would otherwise jam the bus forever.
             bool overrun = (now - drive_start_us) > MAX_DRIVE_US;
             if (done || overrun) {
                 if (overrun && !done) { st.err_drive_timeout++; r_head = r_tail = 0; }
+                else if (link_busy)   st.rel_frame++;
                 local_release();
                 driving = false;
                 local_last_us = time_us_32();   // guard before we trust RX again

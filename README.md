@@ -27,6 +27,7 @@ XIP cache misses in the forwarding path and flash is idle at runtime.
 | 12 / 13 | UART0 TX / RX — RS-422 link at 1 Mbaud, non-inverted, full duplex |
 | 9  | Local inverted single-wire half duplex (radio module bay / Tx module) |
 | 10 / 11 | Driven low as spare grounds (12 mA max each; signal reference only) |
+| 8  | Trace: toggles once per core1 loop pass (each level = one pass) |
 | 14 | Trace: high while this board drives the local wire |
 | 15 | Trace: toggles on each byte from the link |
 | 16 | On-board WS2812 (PIO1): 1 Hz blink — green link up, red link down, blue core1 wedged |
@@ -49,6 +50,10 @@ UART idle — important because the battery-powered far end is often unpowered.
 - The link runs at 1 Mbaud while the local wire is 400k, so the link always
   drains faster than it fills and each hop costs 10 us rather than 25. The far
   end regenerates 400k timing on its own wire, so the rates need not match.
+- `crsf.c` — passive CRSF parser (length + CRC8 DVB-S2) on both streams. Bytes
+  are never held for it; it only feeds the `crsf:` counters and lets the local
+  wire be released right after the stop bit of a CRC-valid frame (`rel_frame`),
+  instead of waiting `GUARD_US` of link silence. Anything else falls back to the gap.
 - `main.c` — core0 only. USB is initialised **before** core1 launches so
   TinyUSB's IRQ binds to core0 and never perturbs the forwarding loop.
   Core1 never calls `printf`.
@@ -79,7 +84,11 @@ What to check, in order:
 the transceivers are in.
 
 You cannot debug PIO timing from a 1 Hz text report — put a logic analyzer on
-GP14/GP15 alongside GP9.
+GP14/GP15 alongside GP9. GP8's longest level is the worst-case loop pass; it
+must stay well under one local byte time (25 us at 400k).
+
+`sys` defaults to 48 MHz from PLL_USB with PLL_SYS shut down. Define
+`SYS_CLK_KHZ` in `config.h` to override.
 
 ## Not yet done
 

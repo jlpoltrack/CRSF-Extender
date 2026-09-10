@@ -19,9 +19,13 @@ void stats_report(const stats_t *s, uint32_t uptime_s) {
            (unsigned long)or_zero(s->turn_min_us), (unsigned long)s->turn_max_us,
            (unsigned long)s->turn_n);
 
-    printf("               linkdrop %lu  cont %lu  hold_to %lu\n",
+    printf("               linkdrop %lu  cont %lu  hold_to %lu  rel_frame %lu\n",
            (unsigned long)s->link_drops, (unsigned long)s->err_contention,
-           (unsigned long)s->err_drive_timeout);
+           (unsigned long)s->err_drive_timeout, (unsigned long)s->rel_frame);
+
+    printf("               crsf: local ok %lu bad %lu | link ok %lu bad %lu\n",
+           (unsigned long)s->crsf_local_ok, (unsigned long)s->crsf_local_bad,
+           (unsigned long)s->crsf_link_ok,  (unsigned long)s->crsf_link_bad);
 
     printf("               err: local frm %lu ovr %lu | link frm %lu ovr %lu | dropped tx %lu rx %lu\n",
            (unsigned long)s->err_frame, (unsigned long)s->err_local_ovr,

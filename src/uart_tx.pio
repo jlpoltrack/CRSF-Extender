@@ -1,0 +1,32 @@
+;
+; 8n1 UART TX for the local half-duplex wire.
+; Line polarity is handled by the GPIO OUTOVER field, so this program is
+; written for a normal (idle-high) UART and needs no inverted variant.
+;
+; 8 clocks per bit -> sm clkdiv = clk_sys / (8 * baud)
+
+.program uart_tx
+.side_set 1 opt
+
+.wrap_target
+    pull   block       side 1 [7]   ; stop bit / idle level while stalled
+    set    x, 7        side 0 [7]   ; start bit
+bitloop:
+    out    pins, 1
+    jmp    x-- bitloop        [6]
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+static inline void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin, uint baud) {
+    pio_sm_config c = uart_tx_program_get_default_config(offset);
+    sm_config_set_out_pins(&c, pin, 1);
+    sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_out_shift(&c, true, false, 32);   // shift right: UART is LSB first
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_clkdiv(&c, (float)clock_get_hz(clk_sys) / (8 * baud));
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

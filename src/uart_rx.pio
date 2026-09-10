@@ -1,0 +1,35 @@
+;
+; 8n1 UART RX for the local half-duplex wire, with framing-error detection.
+; Polarity is handled by the GPIO INOVER field, so this is a normal UART.
+;
+; 8 clocks per bit -> sm clkdiv = clk_sys / (8 * baud)
+
+.program uart_rx
+
+start:
+    wait   0 pin 0            ; stall until start bit
+    set    x, 7        [10]   ; preload counter, delay to mid-point of bit 0
+bitloop:
+    in     pins, 1
+    jmp    x-- bitloop [6]
+    jmp    pin good_stop      ; stop bit must be high
+    irq    4 rel              ; framing error / break: sticky flag, no push
+    wait   1 pin 0            ; wait for line to return to idle
+    jmp    start
+good_stop:
+    push
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+static inline void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin, uint baud) {
+    pio_sm_config c = uart_rx_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, pin);
+    sm_config_set_jmp_pin(&c, pin);
+    sm_config_set_in_shift(&c, true, true, 8);     // shift right, autopush at 8 bits
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+    sm_config_set_clkdiv(&c, (float)clock_get_hz(clk_sys) / (8 * baud));
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
